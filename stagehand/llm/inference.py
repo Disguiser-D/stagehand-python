@@ -18,6 +18,7 @@ from stagehand.types import (
     MetadataSchema,
     ObserveInferenceSchema,
 )
+from stagehand.utils import extract_json_from_mixed_content
 
 
 # TODO: kwargs
@@ -95,9 +96,20 @@ def observe(
             try:
                 parsed_response = json.loads(content)
             except json.JSONDecodeError:
-                if logger:
-                    logger.error(f"Failed to parse JSON response: {content}")
-                parsed_response = {"elements": []}
+                # Try to extract JSON from mixed content using our utility
+                logger.info("Standard JSON parsing failed, attempting to extract JSON from mixed content")
+                parsed_response = extract_json_from_mixed_content(content)
+                
+                # Log the extraction attempt
+                if parsed_response.get("elements"):
+                    logger.info(
+                        f"Successfully extracted {len(parsed_response['elements'])} elements from mixed content"
+                    )
+                else:
+                    logger.error(
+                        "Failed to extract valid JSON from mixed content",
+                        auxiliary={"content_preview": content[:200] + "..." if len(content) > 200 else content}
+                    )
         else:
             parsed_response = content
 

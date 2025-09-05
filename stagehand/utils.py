@@ -1,11 +1,100 @@
 import inspect
+import json
 import os
+import re
 from typing import Any, Union, get_args, get_origin
 
 from pydantic import AnyUrl, BaseModel, Field, HttpUrl, create_model
 from pydantic.fields import FieldInfo
 
 from stagehand.types.a11y import AccessibilityNode
+
+
+def extract_json_from_mixed_content(content: str) -> dict[str, Any]:
+    """
+    Extract JSON from mixed content that contains explanatory text and JSON blocks.
+    
+    This function handles various scenarios:
+    1. Content with ```json blocks
+    2. Content with standalone JSON arrays/objects
+    3. Multiple JSON blocks (returns the first valid one)
+    4. Mixed text with embedded JSON
+    
+    Args:
+        content: String that may contain JSON mixed with other text
+        
+    Returns:
+        Dictionary with parsed JSON content, or {"elements": []} if no valid JSON found
+    """
+    if not content or not isinstance(content, str):
+        return {"elements": []}
+    
+    # Try to parse as direct JSON first (for backward compatibility)
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+    
+    # Strategy 1: Look for ```json blocks
+    json_block_pattern = r'```json\s*(.*?)\s*```'
+    json_blocks = re.findall(json_block_pattern, content, re.DOTALL | re.IGNORECASE)
+    
+    for block in json_blocks:
+        try:
+            parsed = json.loads(block.strip())
+            # If it's a list, wrap it in the elements structure
+            if isinstance(parsed, list):
+                return {"elements": parsed}
+            # If it's already a dict, return as is
+            elif isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            continue
+    
+    # Strategy 2: Look for standalone JSON arrays in the content
+    # Match JSON arrays that start with [ and end with ]
+    array_pattern = r'\[\s*\{.*?\}\s*\]'
+    array_matches = re.findall(array_pattern, content, re.DOTALL)
+    
+    for match in array_matches:
+        try:
+            parsed = json.loads(match)
+            if isinstance(parsed, list):
+                return {"elements": parsed}
+        except json.JSONDecodeError:
+            continue
+    
+    # Strategy 3: Look for standalone JSON objects
+    # Match JSON objects that start with { and end with }
+    object_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+    object_matches = re.findall(object_pattern, content, re.DOTALL)
+    
+    for match in object_matches:
+        try:
+            parsed = json.loads(match)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            continue
+    
+    # Strategy 4: Look for element-like structures manually
+    # This handles cases where JSON might be malformed but contains recognizable patterns
+    element_pattern = r'\{\s*"(?:element|element_id|id)"[^}]*\}'
+    element_matches = re.findall(element_pattern, content, re.DOTALL | re.IGNORECASE)
+    
+    elements = []
+    for match in element_matches:
+        try:
+            parsed = json.loads(match)
+            elements.append(parsed)
+        except json.JSONDecodeError:
+            continue
+    
+    if elements:
+        return {"elements": elements}
+    
+    # If no valid JSON found, return empty elements
+    return {"elements": []}
 
 
 def snake_to_camel(snake_str: str) -> str:
