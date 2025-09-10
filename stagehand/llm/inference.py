@@ -6,7 +6,7 @@ from typing import Any, Callable, Optional, Union
 
 from pydantic import BaseModel
 
-from stagehand.llm.prompts import (
+from .prompts import (
     build_extract_system_prompt,
     build_extract_user_prompt,
     build_metadata_prompt,
@@ -14,11 +14,11 @@ from stagehand.llm.prompts import (
     build_observe_system_prompt,
     build_observe_user_message,
 )
-from stagehand.types import (
+from ..types import (
     MetadataSchema,
     ObserveInferenceSchema,
 )
-from stagehand.utils import extract_json_from_mixed_content
+from ..utils import extract_json_from_mixed_content
 
 
 # TODO: kwargs

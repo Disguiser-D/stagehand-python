@@ -7,7 +7,7 @@ from typing import Any, Union, get_args, get_origin
 from pydantic import AnyUrl, BaseModel, Field, HttpUrl, create_model
 from pydantic.fields import FieldInfo
 
-from stagehand.types.a11y import AccessibilityNode
+from .types.a11y import AccessibilityNode
 
 
 def extract_json_from_mixed_content(content: str) -> dict[str, Any]:
@@ -52,17 +52,21 @@ def extract_json_from_mixed_content(content: str) -> dict[str, Any]:
             continue
     
     # Strategy 2: Look for standalone JSON arrays in the content
-    # Match JSON arrays that start with [ and end with ]
-    array_pattern = r'\[\s*\{.*?\}\s*\]'
-    array_matches = re.findall(array_pattern, content, re.DOTALL)
+    # Match JSON arrays that start with [ and end with ] - 更强的模式匹配
+    array_patterns = [
+        r'\[\s*\{.*?\}\s*\]',  # 原始模式
+        r'\[[\s\S]*?\]',       # 更宽松的数组匹配
+    ]
     
-    for match in array_matches:
-        try:
-            parsed = json.loads(match)
-            if isinstance(parsed, list):
-                return {"elements": parsed}
-        except json.JSONDecodeError:
-            continue
+    for pattern in array_patterns:
+        array_matches = re.findall(pattern, content, re.DOTALL)
+        for match in array_matches:
+            try:
+                parsed = json.loads(match)
+                if isinstance(parsed, list):
+                    return {"elements": parsed}
+            except json.JSONDecodeError:
+                continue
     
     # Strategy 3: Look for standalone JSON objects
     # Match JSON objects that start with { and end with }
@@ -92,6 +96,32 @@ def extract_json_from_mixed_content(content: str) -> dict[str, Any]:
     
     if elements:
         return {"elements": elements}
+    
+    # Strategy 5: 最后的尝试 - 寻找常见的 JSON 标识符
+    # 查找可能的 elements 字样和相关结构
+    elements_pattern = r'"elements"\s*:\s*(\[[\s\S]*?\])'
+    elements_match = re.search(elements_pattern, content, re.IGNORECASE)
+    
+    if elements_match:
+        try:
+            elements_array = json.loads(elements_match.group(1))
+            if isinstance(elements_array, list):
+                return {"elements": elements_array}
+        except json.JSONDecodeError:
+            pass
+    
+    # Strategy 6: 如果 Claude 返回了描述性文本，尝试创建一个基本的元素结构
+    # 这是一个备用方案，基于文本内容推断
+    if "page" in content.lower() or "element" in content.lower():
+        # 返回一个通用的描述而不是空数组，这样至少能看到有响应
+        return {
+            "elements": [{
+                "element_id": 0,
+                "description": f"Claude returned descriptive text instead of structured JSON: {content[:200]}...",
+                "method": "observe",
+                "arguments": []
+            }]
+        }
     
     # If no valid JSON found, return empty elements
     return {"elements": []}

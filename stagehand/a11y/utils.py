@@ -5,7 +5,7 @@ import time
 from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
-    from stagehand.page import StagehandPage
+    from ..page import StagehandPage
 
 from ..logging import StagehandLogger
 from ..types.a11y import (

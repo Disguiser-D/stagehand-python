@@ -1,7 +1,5 @@
 """Stagehand - The AI Browser Automation Framework"""
 
-from importlib.metadata import version as get_version
-
 from .agent import Agent
 from .config import StagehandConfig, default_config
 from .handlers.observe_handler import ObserveHandler
@@ -23,7 +21,7 @@ from .schemas import (
     ObserveResult,
 )
 
-__version__ = get_version("stagehand")
+__version__ = "0.5.2"
 
 __all__ = [
     "Stagehand",

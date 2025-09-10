@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 if TYPE_CHECKING:
-    from stagehand.page import StagehandPage
+    from ..page import StagehandPage
 
 from playwright.async_api import Locator, Page
 

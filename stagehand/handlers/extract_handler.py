@@ -4,16 +4,16 @@ from typing import Optional, TypeVar
 
 from pydantic import BaseModel
 
-from stagehand.a11y.utils import get_accessibility_tree
-from stagehand.llm.inference import extract as extract_inference
-from stagehand.metrics import StagehandFunctionName  # Changed import location
-from stagehand.types import (
+from ..a11y.utils import get_accessibility_tree
+from ..llm.inference import extract as extract_inference
+from ..metrics import StagehandFunctionName  # Changed import location
+from ..types import (
     DefaultExtractSchema,
     EmptyExtractSchema,
     ExtractOptions,
     ExtractResult,
 )
-from stagehand.utils import (
+from ..utils import (
     convert_dict_keys_to_snake_case,
     inject_urls,
     transform_url_strings_to_ids,

@@ -2,11 +2,11 @@
 
 from typing import Any
 
-from stagehand.a11y.utils import get_accessibility_tree, get_xpath_by_resolved_object_id
-from stagehand.llm.inference import observe as observe_inference
-from stagehand.metrics import StagehandFunctionName  # Changed import location
-from stagehand.schemas import ObserveOptions, ObserveResult
-from stagehand.utils import draw_observe_overlay
+from ..a11y.utils import get_accessibility_tree, get_xpath_by_resolved_object_id
+from ..llm.inference import observe as observe_inference
+from ..metrics import StagehandFunctionName  # Changed import location
+from ..schemas import ObserveOptions, ObserveResult
+from ..utils import draw_observe_overlay
 
 
 class ObserveHandler:
@@ -142,19 +142,49 @@ class ObserveHandler:
             element_id = element.get("element_id")
             rest = {k: v for k, v in element.items() if k != "element_id"}
 
+            # Check if element_id is present and valid
+            if element_id is None:
+                self.logger.warning(
+                    f"Element missing element_id (nodeId): {element}. "
+                    f"This indicates the LLM did not return the required nodeId from the accessibility tree. "
+                    f"Skipping this element."
+                )
+                continue
+
+            if not isinstance(element_id, int):
+                self.logger.warning(
+                    f"Invalid element_id type for element: {element}. "
+                    f"Expected int, got {type(element_id)}. Attempting conversion."
+                )
+                try:
+                    element_id = int(element_id)
+                except (ValueError, TypeError):
+                    self.logger.error(
+                        f"Failed to convert element_id to int: {element_id}. Skipping element."
+                    )
+                    continue
+
             # Generate xpath for element using CDP
             self.logger.info(
                 "Getting xpath for element",
                 auxiliary={"elementId": str(element_id)},
             )
 
-            args = {"backendNodeId": element_id}
-            response = await self.stagehand_page.send_cdp("DOM.resolveNode", args)
-            object_id = response.get("object", {}).get("objectId")
+            try:
+                args = {"backendNodeId": element_id}
+                response = await self.stagehand_page.send_cdp("DOM.resolveNode", args)
+                object_id = response.get("object", {}).get("objectId")
 
-            if not object_id:
-                self.logger.info(
-                    f"Invalid object ID returned for element: {element_id}"
+                if not object_id:
+                    self.logger.warning(
+                        f"Invalid object ID returned for element: {element_id}. "
+                        f"This may indicate the nodeId is stale or invalid."
+                    )
+                    continue
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to resolve DOM node for element_id {element_id}: {str(e)}. "
+                    f"This typically happens when the LLM returns an invalid nodeId."
                 )
                 continue
 

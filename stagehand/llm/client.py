@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import litellm
 
-from stagehand.metrics import get_inference_time_ms, start_inference_timer
+from ..metrics import get_inference_time_ms, start_inference_timer
 
 if TYPE_CHECKING:
     from ..logging import StagehandLogger

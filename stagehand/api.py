@@ -84,7 +84,7 @@ async def _create_session(self):
         "Content-Type": "application/json",
         "x-sent-at": datetime.now().isoformat(),
         "x-language": "python",
-        "x-sdk-version": get_version("stagehand"),
+        "x-sdk-version": "0.5.2",
     }
 
     # async with self._client:

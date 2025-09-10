@@ -14,7 +14,9 @@ class EmptyExtractSchema(BaseModel):
 
 
 class ObserveElementSchema(BaseModel):
-    element_id: int
+    element_id: int = Field(
+        ..., description="The unique node ID from the accessibility tree (required). This MUST be the exact nodeId number shown in brackets like [123] in the accessibility tree."
+    )
     description: str = Field(
         ..., description="A description of the observed element and its purpose."
     )

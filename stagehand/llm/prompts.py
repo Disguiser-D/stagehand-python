@@ -1,7 +1,7 @@
 from typing import Optional
 
-from stagehand.handlers.act_handler_utils import method_handler_map
-from stagehand.types.llm import ChatMessage
+from ..handlers.act_handler_utils import method_handler_map
+from ..types.llm import ChatMessage
 
 
 def build_user_instructions_string(
@@ -158,7 +158,29 @@ You will be given:
 1. an instruction of elements to observe
 2. {tree_type_desc}
 
-Return an array of elements that match the instruction if they exist, otherwise return an empty array. Whenever suggesting actions, use supported playwright locator methods or preferably one of the following supported actions:
+CRITICAL REQUIREMENT: You MUST return the element_id (nodeId) from the accessibility tree for each element you find. This is REQUIRED for the system to locate and interact with the elements.
+
+Return an array of elements that match the instruction if they exist, otherwise return an empty array. Each element MUST include:
+- element_id: The exact nodeId number from the accessibility tree (shown in brackets like [123]) - THIS IS MANDATORY
+- description: Clear description of the element and its purpose
+- method: The suggested action method
+- arguments: Any required arguments for the method
+
+Example response format:
+{{
+  "elements": [
+    {{
+      "element_id": 123,
+      "description": "Navigation link for market data",
+      "method": "click", 
+      "arguments": []
+    }}
+  ]
+}}
+
+IMPORTANT: If you cannot find the nodeId (element_id) in the accessibility tree for an element, do NOT include that element in your response. Only return elements where you can identify the exact nodeId number.
+
+Whenever suggesting actions, use supported playwright locator methods or preferably one of the following supported actions:
 {', '.join(method_handler_map.keys())}"""
 
     content = " ".join(observe_system_prompt_base.split())
@@ -182,7 +204,10 @@ def build_observe_user_message(
     return ChatMessage(
         role="user",
         content=f"""instruction: {instruction}
-{tree_or_dom}: {tree_elements}""",
+
+{tree_or_dom}: {tree_elements}
+
+CRITICAL: Please extract the exact nodeId (shown in brackets like [123]) for each element you select and include it as element_id in your response. Without the nodeId, the system cannot locate the elements.""",
     )
 
 
